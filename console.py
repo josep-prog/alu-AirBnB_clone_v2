@@ -115,16 +115,38 @@ class HBNBCommand(cmd.Cmd):
 
     def do_create(self, args):
         """ Create an object of any class"""
+        args = args.split()
         if not args:
             print("** class name missing **")
             return
-        elif args not in HBNBCommand.classes:
+        class_name = args[0]
+        if class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[args]()
-        storage.save()
-        print(new_instance.id)
-        storage.save()
+
+        kwargs = {}
+        for arg in args[1:]:
+            if "=" in arg:
+                key, value = arg.split("=", 1)
+                # Handle potential value types and replace underscores
+                if hasattr(self, 'types') and key in self.types:
+                     try:
+                         value = self.types[key](value.replace("_", " "))
+                     except ValueError:
+                         continue # Skip if type conversion fails
+                else:
+                    value = value.replace("_", " ")
+                    if value.startswith('"') and value.endswith('"'):
+                        value = value[1:-1].replace('\\"', '"') # Handle escaped quotes
+                kwargs[key] = value
+
+        try:
+            new_instance = HBNBCommand.classes[class_name](**kwargs)
+            storage.new(new_instance)
+            storage.save()
+            print(new_instance.id)
+        except Exception as e:
+            print(f"Error creating instance: {e}")
 
     def help_create(self):
         """ Help information for the create method """
@@ -201,17 +223,18 @@ class HBNBCommand(cmd.Cmd):
         """ Shows all objects, or all objects of a class"""
         print_list = []
 
+        args = args.split()
+        if args and args[0] not in HBNBCommand.classes:
+            print("** class doesn't exist **")
+            return
+
         if args:
-            args = args.split(' ')[0]  # remove possible trailing args
-            if args not in HBNBCommand.classes:
-                print("** class doesn't exist **")
-                return
-            for k, v in storage._FileStorage__objects.items():
-                if k.split('.')[0] == args:
-                    print_list.append(str(v))
+            obj_dict = storage.all(args[0])
         else:
-            for k, v in storage._FileStorage__objects.items():
-                print_list.append(str(v))
+            obj_dict = storage.all()
+
+        for key, obj in obj_dict.items():
+            print_list.append(str(obj))
 
         print(print_list)
 
