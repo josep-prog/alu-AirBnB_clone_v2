@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-"""State class definition"""
+"""This module defines a class to manage state objects"""
 from models.base_model import BaseModel, Base
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 from os import getenv
 
 class State(BaseModel, Base):
-    """State class for storing state information"""
+    """This class manages state objects"""
     __tablename__ = 'states'
     
     name = Column(String(128), nullable=False)
