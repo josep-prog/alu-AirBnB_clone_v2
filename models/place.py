@@ -1,18 +1,19 @@
 #!/usr/bin/python3
-"""Place class definition"""
+"""This module defines a class to manage place objects"""
 from models.base_model import BaseModel, Base
 from sqlalchemy import Column, String, Integer, Float, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from os import getenv
 
-# Association table for many-to-many relationship between Place and Amenity
-place_amenity = Table('place_amenity', Base.metadata,
-    Column('place_id', String(60), ForeignKey('places.id'), primary_key=True, nullable=False),
-    Column('amenity_id', String(60), ForeignKey('amenities.id'), primary_key=True, nullable=False)
-)
+if getenv('HBNB_TYPE_STORAGE') == 'db':
+    place_amenity = Table('place_amenity', Base.metadata,
+                         Column('place_id', String(60), ForeignKey('places.id'),
+                                primary_key=True, nullable=False),
+                         Column('amenity_id', String(60), ForeignKey('amenities.id'),
+                                primary_key=True, nullable=False))
 
 class Place(BaseModel, Base):
-    """Place class for storing place information"""
+    """This class manages place objects"""
     __tablename__ = 'places'
     
     city_id = Column(String(60), ForeignKey('cities.id'), nullable=False)
@@ -26,12 +27,10 @@ class Place(BaseModel, Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     
-    # Relationships for DBStorage
     if getenv('HBNB_TYPE_STORAGE') == 'db':
-        user = relationship("User", backref="places", viewonly=True)
-        city = relationship("City", backref="places", viewonly=True)
         reviews = relationship('Review', backref='place', cascade='all, delete-orphan')
-        amenities = relationship('Amenity', secondary=place_amenity, viewonly=False)
+        amenities = relationship('Amenity', secondary=place_amenity,
+                               viewonly=False, backref='place_amenities')
     else:
         @property
         def reviews(self):
@@ -43,7 +42,7 @@ class Place(BaseModel, Base):
                 if review.place_id == self.id:
                     review_list.append(review)
             return review_list
-        
+
         @property
         def amenities(self):
             """Getter for amenities"""
@@ -54,7 +53,7 @@ class Place(BaseModel, Base):
                 if amenity.id in self.amenity_ids:
                     amenity_list.append(amenity)
             return amenity_list
-        
+
         @amenities.setter
         def amenities(self, obj):
             """Setter for amenities"""
