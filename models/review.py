@@ -16,3 +16,17 @@ class Review(BaseModel, Base):
     if getenv('HBNB_TYPE_STORAGE') == 'db':
         place = relationship('Place', backref='reviews', cascade='all, delete-orphan')
         user = relationship('User', backref='reviews', cascade='all, delete-orphan')
+    else:
+        @property
+        def place(self):
+            """Getter for place"""
+            from models import storage
+            from models.place import Place
+            return storage.get(Place, self.place_id)
+
+        @property
+        def user(self):
+            """Getter for user"""
+            from models import storage
+            from models.user import User
+            return storage.get(User, self.user_id)
