@@ -4,6 +4,12 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from models.base_model import Base
+from models.state import State
+from models.city import City
+from models.user import User
+from models.place import Place
+from models.review import Review
+from models.amenity import Amenity
 
 
 class DBStorage:
@@ -23,16 +29,15 @@ class DBStorage:
 
     def all(self, cls=None):
         """Query on the current database session all objects depending of the class name"""
-        from models.state import State
-        from models.city import City
-        from models.user import User
-        from models.place import Place
-        from models.review import Review
-        from models.amenity import Amenity
-        classes = {'State': State, 'City': City, 'User': User, 'Place': Place, 'Review': Review, 'Amenity': Amenity}
+        classes = {
+            'State': State, 'City': City, 'User': User,
+            'Place': Place, 'Review': Review, 'Amenity': Amenity
+        }
         result = {}
         if cls is not None:
-            for obj in self.__session.query(classes[cls]).all():
+            if type(cls) is str:
+                cls = classes[cls]
+            for obj in self.__session.query(cls).all():
                 key = obj.__class__.__name__ + '.' + obj.id
                 result[key] = obj
         else:
@@ -57,12 +62,6 @@ class DBStorage:
 
     def reload(self):
         """Create all tables in the database and create the current database session"""
-        from models.state import State
-        from models.city import City
-        from models.user import User
-        from models.place import Place
-        from models.review import Review
-        from models.amenity import Amenity
         Base.metadata.create_all(self.__engine)
         session_factory = sessionmaker(bind=self.__engine, expire_on_commit=False)
         Session = scoped_session(session_factory)
@@ -70,4 +69,27 @@ class DBStorage:
 
     def close(self):
         """Close the current database session"""
-        self.__session.close() 
+        self.__session.close()
+
+    def get(self, cls, id):
+        """Retrieve one object based on class name and ID"""
+        if cls is None or id is None:
+            return None
+        if type(cls) is str:
+            cls = eval(cls)
+        return self.__session.query(cls).filter(cls.id == id).first()
+
+    def count(self, cls=None):
+        """Count the number of objects in storage"""
+        if cls is None:
+            total = 0
+            total += self.__session.query(State).count()
+            total += self.__session.query(City).count()
+            total += self.__session.query(User).count()
+            total += self.__session.query(Place).count()
+            total += self.__session.query(Review).count()
+            total += self.__session.query(Amenity).count()
+            return total
+        if type(cls) is str:
+            cls = eval(cls)
+        return self.__session.query(cls).count() 
