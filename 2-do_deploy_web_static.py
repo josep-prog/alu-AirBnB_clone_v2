@@ -1,57 +1,30 @@
 #!/usr/bin/python3
 """
-Fabric script to deploy web_static to web servers
+Fabric script based on the file 1-pack_web_static.py that distributes an
+archive to the web servers
 """
 
-from fabric.api import env, put, run
+from fabric.api import put, run, env
 from os.path import exists
+env.hosts = ['	52.71.25.46', '54.86.41.67']
 
-# Server configurations
-env.hosts = ['52.71.25.46', '54.86.41.67']  # web-01 and web-02
-env.user = 'ubuntu'
-env.key_filename = '~/.ssh/id_rsa'
 
 def do_deploy(archive_path):
-    """Deploy web_static to web servers"""
-    if not exists(archive_path):
+    """distributes an archive to the web servers"""
+    if exists(archive_path) is False:
         return False
-        
     try:
-        # Get archive filename without extension
-        archive_name = archive_path.split('/')[-1]
-        archive_name_no_ext = archive_name.split('.')[0]
-        
-        # Upload archive to /tmp/
+        file_n = archive_path.split("/")[-1]
+        no_ext = file_n.split(".")[0]
+        path = "/data/web_static/releases/"
         put(archive_path, '/tmp/')
-        
-        # Create release directory
-        run(f'mkdir -p /data/web_static/releases/{archive_name_no_ext}/')
-        
-        # Uncompress archive
-        run(f'tar -xzf /tmp/{archive_name} -C /data/web_static/releases/{archive_name_no_ext}/')
-        
-        # Remove archive from /tmp/
-        run(f'rm /tmp/{archive_name}')
-        
-        # Move contents to release directory
-        run(f'mv /data/web_static/releases/{archive_name_no_ext}/web_static/* '
-            f'/data/web_static/releases/{archive_name_no_ext}/')
-        
-        # Remove empty web_static directory
-        run(f'rm -rf /data/web_static/releases/{archive_name_no_ext}/web_static')
-        
-        # Remove current symlink
+        run('mkdir -p {}{}/'.format(path, no_ext))
+        run('tar -xzf /tmp/{} -C {}{}/'.format(file_n, path, no_ext))
+        run('rm /tmp/{}'.format(file_n))
+        run('mv {0}{1}/web_static/* {0}{1}/'.format(path, no_ext))
+        run('rm -rf {}{}/web_static'.format(path, no_ext))
         run('rm -rf /data/web_static/current')
-        
-        # Create new symlink
-        run(f'ln -s /data/web_static/releases/{archive_name_no_ext}/ '
-            '/data/web_static/current')
-        
-        # Ensure proper permissions
-        run('chmod -R 755 /data/web_static/')
-        
-        print("New version deployed!")
+        run('ln -s {}{}/ /data/web_static/current'.format(path, no_ext))
         return True
-        
-    except Exception as e:
+    except:
         return False
