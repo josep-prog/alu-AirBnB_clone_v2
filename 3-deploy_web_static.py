@@ -70,6 +70,23 @@ def do_deploy(archive_path):
         
         # Set proper permissions
         run('sudo chown -R ubuntu:ubuntu /data/web_static/')
+        run('sudo chmod -R 755 /data/web_static/')
+        
+        # Ensure Nginx configuration
+        nginx_config = """
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    root /data/web_static/current;
+    index index.html index.htm;
+    server_name _;
+    location /hbnb_static {
+        alias /data/web_static/current;
+        try_files $uri $uri/ =404;
+    }
+}
+"""
+        run('echo "{}" | sudo tee /etc/nginx/sites-available/default'.format(nginx_config))
         
         # Restart Nginx to ensure changes take effect
         run('sudo service nginx restart')
