@@ -25,8 +25,7 @@ def do_pack():
         return None
 
 def do_deploy(archive_path):
-    """
-    Deploy web_static to web servers
+    """Deploy web_static to web servers
     
     Args:
         archive_path: Path to the archive file
