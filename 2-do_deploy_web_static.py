@@ -1,56 +1,69 @@
 #!/usr/bin/python3
-"""Compress web static package
 """
-from fabric.api import run, put, env
-from os import path
+Fabric script to deploy web_static to web servers
+"""
 
-env.hosts = ['18.209.20.255', '34.73.76.135']
+from fabric.api import env, put, run, sudo
+from os.path import exists
+
+# Server configurations
+env.hosts = ['52.71.25.46', '54.86.41.67']  # web-01 and web-02
 env.user = 'ubuntu'
 env.key_filename = '~/.ssh/id_rsa'
 
-
 def do_deploy(archive_path):
-    """Deploy web files to server"""
-    try:
-        if not path.exists(archive_path):
-            return False
-
-        # Upload archive
-        put(archive_path, '/tmp/')
-
-        # Create target dir
-        timestamp = archive_path[-18:-4]
-        run('sudo mkdir -p /data/web_static/releases/web_static_{}/'
-            .format(timestamp))
-
-        # Uncompress archive and delete .tgz
-        run('sudo tar -xzf /tmp/web_static_{}.tgz -C '
-            '/data/web_static/releases/web_static_{}/'
-            .format(timestamp, timestamp))
-
-        # Remove archive
-        run('sudo rm /tmp/web_static_{}.tgz'
-            .format(timestamp))
-
-        # Move contents into host web_static
-        run('sudo mv /data/web_static/releases/web_static_{}/web_static/* '
-            '/data/web_static/releases/web_static_{}/'
-            .format(timestamp, timestamp))
-
-        # Remove extraneous web_static dir
-        run('sudo rm -rf /data/web_static/releases/web_static_{}/web_static'
-            .format(timestamp))
-
-        # Delete pre-existing sym link
-        run('sudo rm -rf /data/web_static/current')
-
-        # Re-establish symbolic link
-        run('sudo ln -s /data/web_static/releases/web_static_{}/ '
-            '/data/web_static/current'
-            .format(timestamp))
-    except Exception as e:
-        print("Exception:", e)
+    """
+    Deploy web_static to web servers
+    
+    Args:
+        archive_path: Path to the archive file
+        
+    Returns:
+        True if deployment is successful, False otherwise
+    """
+    if not exists(archive_path):
         return False
-
-    # Return True on success
-    return True
+        
+    try:
+        # Get archive filename without extension
+        archive_name = archive_path.split('/')[-1]
+        archive_name_no_ext = archive_name.split('.')[0]
+        
+        # Upload archive to /tmp/
+        put(archive_path, '/tmp/')
+        
+        # Create release directory
+        run(f'sudo mkdir -p /data/web_static/releases/{archive_name_no_ext}/')
+        
+        # Uncompress archive
+        run(f'sudo tar -xzf /tmp/{archive_name} -C /data/web_static/releases/{archive_name_no_ext}/')
+        
+        # Remove archive from /tmp/
+        run(f'sudo rm /tmp/{archive_name}')
+        
+        # Move contents to release directory
+        run(f'sudo mv /data/web_static/releases/{archive_name_no_ext}/web_static/* '
+            f'/data/web_static/releases/{archive_name_no_ext}/')
+        
+        # Remove empty web_static directory
+        run(f'sudo rm -rf /data/web_static/releases/{archive_name_no_ext}/web_static')
+        
+        # Remove current symlink
+        run('sudo rm -rf /data/web_static/current')
+        
+        # Create new symlink
+        run(f'sudo ln -s /data/web_static/releases/{archive_name_no_ext}/ '
+            '/data/web_static/current')
+        
+        # Set proper permissions
+        run('sudo chown -R ubuntu:ubuntu /data/web_static/')
+        
+        # Restart Nginx to ensure changes take effect
+        run('sudo service nginx restart')
+        
+        print("New version deployed!")
+        return True
+        
+    except Exception as e:
+        print(f"Deployment failed: {str(e)}")
+        return False
