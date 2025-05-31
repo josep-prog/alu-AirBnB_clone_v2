@@ -12,8 +12,7 @@ env.user = 'ubuntu'
 env.key_filename = '~/.ssh/id_rsa'
 
 def do_deploy(archive_path):
-    """
-    Deploy web_static to web servers
+    """Deploy web_static to web servers
     
     Args:
         archive_path: Path to the archive file
