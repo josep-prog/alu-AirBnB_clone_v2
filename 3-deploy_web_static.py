@@ -60,6 +60,9 @@ def do_deploy(archive_path):
         run(f'ln -s /data/web_static/releases/{archive_name_no_ext}/ '
             '/data/web_static/current')
         
+        # Ensure proper permissions
+        run('chmod -R 755 /data/web_static/')
+        
         print("New version deployed!")
         return True
         
